@@ -5,11 +5,12 @@ type InfoListCardProps = {
   description: string;
   items: InfoItem[];
   variant: "timeline" | "schedule";
+  subtle?: boolean;
 };
 
-export function InfoListCard({ title, description, items, variant }: InfoListCardProps) {
+export function InfoListCard({ title, description, items, variant, subtle = false }: InfoListCardProps) {
   return (
-    <div className="card">
+    <div className={`card${subtle ? " subtle-card" : ""}`}>
       <div className="section-head">
         <div>
           <h2 className="section-title">{title}</h2>
@@ -27,4 +28,3 @@ export function InfoListCard({ title, description, items, variant }: InfoListCar
     </div>
   );
 }
-

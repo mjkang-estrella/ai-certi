@@ -2,13 +2,12 @@ import { actionItems } from "../data/dashboard";
 
 export function ActionQueueCard() {
   return (
-    <div className="card">
+    <div className="card card-urgent">
       <div className="section-head">
         <div>
           <h2 className="section-title">지금 처리해야 할 일</h2>
-          <p className="section-copy">홈에서 가장 중요한 실무 영역. 우선순위가 높은 건만 노출한다.</p>
+          <p className="section-copy">5건 미처리</p>
         </div>
-        <div className="section-link">전체 리마인더 보기</div>
       </div>
 
       <div className="queue-list">

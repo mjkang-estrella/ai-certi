@@ -14,25 +14,25 @@ export function ExaminerStatusSection() {
       <div className="section-head">
         <div>
           <h2 className="section-title">시험원별 진행상황</h2>
-          <p className="section-copy">
-            각 시험원별로 시험 협의중, 시험중, 성적서 작성중, 성적서 발행, 성적서 제출, 이 달 종료/완료를
-            한 줄에서 비교한다.
-          </p>
+          <p className="section-copy">이번 달 기준 · 6명</p>
         </div>
-        <div className="section-link">전체 담당 현황 보기</div>
       </div>
 
-      <div className="table-wrap">
-        <table>
+      <div className="table-wrap desktop-only">
+        <table className="examiner-table">
+          <colgroup>
+            <col className="examiner-name-col" />
+            <col span={6} className="examiner-metric-col" />
+          </colgroup>
           <thead>
             <tr>
-              <th className="staff-col">시험원</th>
-              <th>시험 협의중</th>
-              <th>시험중</th>
-              <th>성적서 작성중</th>
-              <th>성적서 발행</th>
-              <th>성적서 제출</th>
-              <th>이 달 종료/완료</th>
+              <th scope="col" className="staff-col">시험원</th>
+              <th scope="col" className="metric-head">시험 협의중</th>
+              <th scope="col" className="metric-head">시험중</th>
+              <th scope="col" className="metric-head">성적서 작성중</th>
+              <th scope="col" className="metric-head">성적서 발행</th>
+              <th scope="col" className="metric-head">성적서 제출</th>
+              <th scope="col" className="metric-head">이 달 종료/완료</th>
             </tr>
           </thead>
           <tbody>
@@ -42,32 +42,32 @@ export function ExaminerStatusSection() {
                   <div className="staff-name">{examiner.name}</div>
                   <div className="staff-role">{examiner.role}</div>
                 </td>
-                <td>
+                <td className="metric-cell">
                   <span className={`count-pill${getTone(examiner.counts.coordination, "coordination")}`}>
                     {examiner.counts.coordination}
                   </span>
                 </td>
-                <td>
+                <td className="metric-cell">
                   <span className={`count-pill${getTone(examiner.counts.testing, "testing")}`}>
                     {examiner.counts.testing}
                   </span>
                 </td>
-                <td>
+                <td className="metric-cell">
                   <span className={`count-pill${getTone(examiner.counts.reporting, "reporting")}`}>
                     {examiner.counts.reporting}
                   </span>
                 </td>
-                <td>
+                <td className="metric-cell">
                   <span className={`count-pill${getTone(examiner.counts.issued, "issued")}`}>
                     {examiner.counts.issued}
                   </span>
                 </td>
-                <td>
+                <td className="metric-cell">
                   <span className={`count-pill${getTone(examiner.counts.submitted, "submitted")}`}>
                     {examiner.counts.submitted}
                   </span>
                 </td>
-                <td>
+                <td className="metric-cell">
                   <span className={`count-pill${getTone(examiner.counts.completed, "completed")}`}>
                     {examiner.counts.completed}
                   </span>
@@ -77,7 +77,58 @@ export function ExaminerStatusSection() {
           </tbody>
         </table>
       </div>
+
+      <div className="mobile-stack mobile-only">
+        {examiners.map((examiner) => (
+          <article className="mobile-card" key={examiner.name}>
+            <div className="mobile-card-head">
+              <div>
+                <div className="staff-name">{examiner.name}</div>
+                <div className="staff-role">{examiner.role}</div>
+              </div>
+            </div>
+
+            <div className="mobile-metric-grid">
+              <div className="mobile-metric-cell">
+                <span>시험 협의중</span>
+                <strong className={`count-pill${getTone(examiner.counts.coordination, "coordination")}`}>
+                  {examiner.counts.coordination}
+                </strong>
+              </div>
+              <div className="mobile-metric-cell">
+                <span>시험중</span>
+                <strong className={`count-pill${getTone(examiner.counts.testing, "testing")}`}>
+                  {examiner.counts.testing}
+                </strong>
+              </div>
+              <div className="mobile-metric-cell">
+                <span>성적서 작성중</span>
+                <strong className={`count-pill${getTone(examiner.counts.reporting, "reporting")}`}>
+                  {examiner.counts.reporting}
+                </strong>
+              </div>
+              <div className="mobile-metric-cell">
+                <span>성적서 발행</span>
+                <strong className={`count-pill${getTone(examiner.counts.issued, "issued")}`}>
+                  {examiner.counts.issued}
+                </strong>
+              </div>
+              <div className="mobile-metric-cell">
+                <span>성적서 제출</span>
+                <strong className={`count-pill${getTone(examiner.counts.submitted, "submitted")}`}>
+                  {examiner.counts.submitted}
+                </strong>
+              </div>
+              <div className="mobile-metric-cell">
+                <span>이 달 종료/완료</span>
+                <strong className={`count-pill${getTone(examiner.counts.completed, "completed")}`}>
+                  {examiner.counts.completed}
+                </strong>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }
-

@@ -1,5 +1,6 @@
 export type SidebarItem = {
   label: string;
+  href: string;
   badge?: string;
   tone?: "default" | "danger";
   active?: boolean;
@@ -9,6 +10,11 @@ export type BannerMetric = {
   label: string;
   value: string;
   sub: string;
+};
+
+export type PipelineStage = {
+  title: string;
+  metrics: BannerMetric[];
 };
 
 export type Examiner = {
@@ -60,31 +66,46 @@ export const sidebarSections: Array<{ label: string; items: SidebarItem[] }> = [
   {
     label: "운영",
     items: [
-      { label: "운영 현황", badge: "HOME", active: true },
-      { label: "프로젝트", badge: "128" },
-      { label: "기업 목록", badge: "84" },
-      { label: "전화 접수", badge: "5", tone: "danger" },
-      { label: "성적서 관리", badge: "18" },
+      { label: "운영 현황", href: "#top", badge: "HOME", active: true },
+      { label: "프로젝트", href: "#projects", badge: "128" },
+      { label: "기업 목록", href: "#projects", badge: "84" },
+      { label: "전화 접수", href: "#top", badge: "5", tone: "danger" },
+      { label: "성적서 관리", href: "#projects", badge: "18" },
     ],
   },
   {
     label: "지원",
     items: [
-      { label: "일정 캘린더" },
-      { label: "자료 링크 관리" },
-      { label: "리마인더", badge: "11", tone: "danger" },
+      { label: "일정 캘린더", href: "#schedule" },
+      { label: "자료 링크 관리", href: "#projects" },
+      { label: "리마인더", href: "#action-queue", badge: "11", tone: "danger" },
     ],
   },
 ];
 
-export const bannerMetrics: BannerMetric[] = [
-  { label: "이 달 접수 건 수", value: "43", sub: "웹 31 · 전화 12" },
-  { label: "시험 협의중", value: "8", sub: "일정 미확정 5건" },
-  { label: "시험중", value: "14", sub: "이번 주 진행 7건" },
-  { label: "성적서 작성중", value: "6", sub: "초안 4 · 내부검토 2" },
-  { label: "성적서 발행", value: "4", sub: "최종확정 직후" },
-  { label: "성적서 제출", value: "3", sub: "고객 전달 완료" },
-  { label: "이 달 종료 / 완료", value: "11", sub: "g4v 완료 8건" },
+export const pipelineStages: PipelineStage[] = [
+  {
+    title: "접수",
+    metrics: [
+      { label: "이 달 접수", value: "43", sub: "웹 31 · 전화 12" },
+    ],
+  },
+  {
+    title: "진행중",
+    metrics: [
+      { label: "시험 협의중", value: "8", sub: "일정 미확정 5건" },
+      { label: "시험중", value: "14", sub: "이번 주 진행 7건" },
+      { label: "성적서 작성중", value: "6", sub: "초안 4 · 내부검토 2" },
+      { label: "성적서 발행", value: "4", sub: "최종확정 직후" },
+      { label: "성적서 제출", value: "3", sub: "고객 전달 완료" },
+    ],
+  },
+  {
+    title: "완료",
+    metrics: [
+      { label: "이 달 종료 / 완료", value: "11", sub: "최종 검증 완료 8건" },
+    ],
+  },
 ];
 
 export const examiners: Examiner[] = [
@@ -108,13 +129,16 @@ export const examiners: Examiner[] = [
     role: "시험원 · 프로젝트 마감 지원",
     counts: { coordination: 0, testing: 1, reporting: 2, issued: 1, submitted: 0, completed: 5 },
   },
-];
-
-export const workloadInsights: SummaryItem[] = [
-  { title: "시험 협의 편중", description: "박지은 담당 협의중 프로젝트가 가장 많음", value: "4" },
-  { title: "시험 진행 병목 가능", description: "김민수 담당 시험중 건이 많아 일정 조정 필요", value: "5" },
-  { title: "성적서 작성 집중", description: "이서준 담당 작성중 건이 가장 많음", value: "4" },
-  { title: "마감 실적 최다", description: "최유진 담당 종료/완료 건이 가장 많음", value: "5" },
+  {
+    name: "정하늘",
+    role: "시험원 · 일정 협의 및 시험 지원",
+    counts: { coordination: 2, testing: 3, reporting: 1, issued: 0, submitted: 1, completed: 2 },
+  },
+  {
+    name: "오세진",
+    role: "시험원 · 성적서 보조 및 마감 지원",
+    counts: { coordination: 1, testing: 1, reporting: 3, issued: 2, submitted: 1, completed: 3 },
+  },
 ];
 
 export const actionItems: ActionItem[] = [
@@ -150,12 +174,14 @@ export const actionItems: ActionItem[] = [
     count: "2",
     hint: "완료 대기",
   },
-];
-
-export const operatingNotes: SummaryItem[] = [
-  { title: "내부검토 대기 성적서", description: "사장님 검토가 필요한 문서 수", value: "4" },
-  { title: "고객검토 회신 지연", description: "2일 이상 피드백 미도착", value: "3" },
-  { title: "전화 접수 미정리", description: "프로젝트 생성 전 메모 상태", value: "5" },
+  {
+    priority: "검토",
+    tone: "warn",
+    title: "전화 접수 미정리",
+    description: "프로젝트 생성 전 메모 상태 · 정리 후 프로젝트 전환 필요",
+    count: "5",
+    hint: "정리 필요",
+  },
 ];
 
 export const projects: ProjectRow[] = [
@@ -234,4 +260,3 @@ export const weeklySchedule: InfoItem[] = [
     description: "전화 재접촉 또는 메일 초안 확정",
   },
 ];
-

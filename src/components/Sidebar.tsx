@@ -12,29 +12,28 @@ export function Sidebar() {
       </div>
 
       {sidebarSections.map((section) => (
-        <div className="menu-group" key={section.label}>
+        <nav className="menu-group" key={section.label} aria-label={section.label}>
           <div className="menu-label">{section.label}</div>
-          {section.items.map((item) => (
-            <div className={`menu-item${item.active ? " active" : ""}`} key={item.label}>
-              <span>{item.label}</span>
-              {item.badge ? (
-                <span className={`menu-pill${item.tone === "danger" ? " danger" : ""}`}>
-                  {item.badge}
-                </span>
-              ) : null}
-            </div>
-          ))}
-        </div>
+          <ul className="menu-list">
+            {section.items.map((item) => (
+              <li key={item.label}>
+                <a
+                  className={`menu-item${item.active ? " active" : ""}`}
+                  href={item.href}
+                  aria-current={item.active ? "page" : undefined}
+                >
+                  <span>{item.label}</span>
+                  {item.badge ? (
+                    <span className={`menu-pill${item.tone === "danger" ? " danger" : ""}`}>
+                      {item.badge}
+                    </span>
+                  ) : null}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
       ))}
-
-      <div className="sidebar-note">
-        <h3>홈의 역할</h3>
-        <p>
-          관리자 홈은 전체 진행상황 관제와 시험원별 비교, 그리고 오늘 처리해야 할 리마인더를 한 화면에
-          모으는 운영 대시보드로 둔다.
-        </p>
-      </div>
     </aside>
   );
 }
-

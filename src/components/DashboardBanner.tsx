@@ -1,29 +1,36 @@
-import { bannerMetrics } from "../data/dashboard";
+import { pipelineStages } from "../data/dashboard";
 
 export function DashboardBanner() {
   return (
-    <section className="banner">
-      <div className="banner-head">
+    <section className="overview-card card">
+      <div className="section-head">
         <div>
-          <h2 className="banner-title">이 달 전체 진행상황</h2>
-          <p className="banner-copy">
-            조직 전체 상태를 7개 핵심 지표로 요약하고, 아래에서 시험원별 세부 분포와 실무 처리 큐를
-            이어서 보는 구조다.
-          </p>
+          <h2 className="section-title">이 달 현황</h2>
+          <p className="section-copy">2026년 3월 기준</p>
         </div>
-        <div className="banner-note">상단은 전체 현황, 아래는 담당자 비교와 우선 처리 업무</div>
       </div>
 
-      <div className="banner-metrics">
-        {bannerMetrics.map((metric) => (
-          <div className="banner-item" key={metric.label}>
-            <div className="banner-label">{metric.label}</div>
-            <div className="banner-value">{metric.value}</div>
-            <div className="banner-sub">{metric.sub}</div>
+      <div className="pipeline">
+        {pipelineStages.map((stage, i) => (
+          <div className="pipeline-stage" key={stage.title}>
+            <div className="pipeline-stage-head">
+              <span className="pipeline-stage-title">{stage.title}</span>
+              {i < pipelineStages.length - 1 && (
+                <span className="pipeline-arrow" aria-hidden="true" />
+              )}
+            </div>
+            <div className="pipeline-metrics">
+              {stage.metrics.map((m) => (
+                <div className="pipeline-metric" key={m.label}>
+                  <div className="pipeline-value">{m.value}</div>
+                  <div className="pipeline-label">{m.label}</div>
+                  <div className="pipeline-sub">{m.sub}</div>
+                </div>
+              ))}
+            </div>
           </div>
         ))}
       </div>
     </section>
   );
 }
-

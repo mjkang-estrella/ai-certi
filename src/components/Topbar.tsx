@@ -1,27 +1,51 @@
-export function Topbar() {
+type TopbarProps = {
+  title: string;
+  description: string;
+  showSearch: boolean;
+  searchId: string;
+  searchHelpText: string;
+  searchPlaceholder: string;
+  searchValue: string;
+  onSearchChange: (value: string) => void;
+};
+
+export function Topbar({
+  title,
+  description,
+  showSearch,
+  searchId,
+  searchHelpText,
+  searchPlaceholder,
+  searchValue,
+  onSearchChange,
+}: TopbarProps) {
   return (
     <div className="topbar">
       <div>
-        <h1 className="page-title">운영 현황</h1>
-        <p className="page-copy">이 달 진행상황과 시험원별 단계 분포 확인</p>
+        <h1 className="page-title">{title}</h1>
+        <p className="page-copy">{description}</p>
       </div>
 
       <div className="actions">
-        <form className="search-form" role="search" onSubmit={(e) => e.preventDefault()}>
-          <label className="sr-only" htmlFor="dashboard-search">
-            기업명, 담당자, 프로젝트 검색
-          </label>
-          <input
-            className="search"
-            id="dashboard-search"
-            name="dashboard-search"
-            placeholder="기업명, 담당자, 프로젝트 검색"
-            aria-describedby="dashboard-search-help"
-          />
-          <span className="sr-only" id="dashboard-search-help">
-            프로젝트명, 담당자명 또는 기업명으로 현재 진행 건을 검색합니다.
-          </span>
-        </form>
+        {showSearch ? (
+          <form className="search-form" role="search" onSubmit={(e) => e.preventDefault()}>
+            <label className="sr-only" htmlFor={searchId}>
+              {searchPlaceholder}
+            </label>
+            <input
+              className="search"
+              id={searchId}
+              name={searchId}
+              placeholder={searchPlaceholder}
+              value={searchValue}
+              onChange={(event) => onSearchChange(event.target.value)}
+              aria-describedby={`${searchId}-help`}
+            />
+            <span className="sr-only" id={`${searchId}-help`}>
+              {searchHelpText}
+            </span>
+          </form>
+        ) : null}
         <button type="button" className="button ghost">전화 접수 등록</button>
         <button type="button" className="button primary">의뢰서 수기 등록</button>
       </div>

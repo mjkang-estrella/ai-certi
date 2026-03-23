@@ -3,7 +3,6 @@ export type SidebarItem = {
   href: string;
   badge?: string;
   tone?: "default" | "danger";
-  active?: boolean;
 };
 
 export type BannerMetric = {
@@ -39,16 +38,47 @@ export type ActionItem = {
   hint: string;
 };
 
+export type ProjectStateTone = "in-progress" | "review" | "done";
+export type IntakeSource = "web" | "phone";
+
 export type ProjectRow = {
   company: string;
   project: string;
   state: string;
-  stateTone: "in-progress" | "review" | "done";
+  stateTone: ProjectStateTone;
   owner: string;
   ownerRole: string;
   nextAction: string;
   nextActionNote: string;
   updatedAt: string;
+};
+
+export type ClientRecord = {
+  id: string;
+  companyName: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  businessNumber?: string;
+};
+
+export type ClientProjectSummary = {
+  id: string;
+  projectName: string;
+  status: string;
+  statusTone: ProjectStateTone;
+  owner: string;
+  intakeSource: IntakeSource;
+  nextAction: string;
+  updatedAt: string;
+};
+
+export type ClientListItem = {
+  client: ClientRecord;
+  projectCount: number;
+  activeProjectCount: number;
+  latestProjectAt: string;
+  projects: ClientProjectSummary[];
 };
 
 export type InfoItem = {
@@ -60,19 +90,19 @@ export const sidebarSections: Array<{ label: string; items: SidebarItem[] }> = [
   {
     label: "운영",
     items: [
-      { label: "운영 현황", href: "#top", badge: "HOME", active: true },
-      { label: "프로젝트", href: "#projects", badge: "128" },
-      { label: "기업 목록", href: "#projects", badge: "84" },
-      { label: "전화 접수", href: "#top", badge: "5", tone: "danger" },
-      { label: "성적서 관리", href: "#projects", badge: "18" },
+      { label: "운영 현황", href: "/", badge: "HOME" },
+      { label: "프로젝트", href: "/#projects", badge: "128" },
+      { label: "기업 목록", href: "/companies", badge: "84" },
+      { label: "전화 접수", href: "/#top", badge: "5", tone: "danger" },
+      { label: "성적서 관리", href: "/#projects", badge: "18" },
     ],
   },
   {
     label: "지원",
     items: [
-      { label: "일정 캘린더", href: "#schedule" },
-      { label: "자료 링크 관리", href: "#projects" },
-      { label: "리마인더", href: "#action-queue", badge: "11", tone: "danger" },
+      { label: "일정 캘린더", href: "/#schedule" },
+      { label: "자료 링크 관리", href: "/#projects" },
+      { label: "리마인더", href: "/#action-queue", badge: "11", tone: "danger" },
     ],
   },
 ];
@@ -222,6 +252,128 @@ export const projects: ProjectRow[] = [
     nextAction: "문제 발생 여부 확인 후 완료 전환",
     nextActionNote: "내일 오전 확인",
     updatedAt: "오늘 08:12",
+  },
+];
+
+export const clientCompanies: ClientListItem[] = [
+  {
+    client: {
+      id: "neologics",
+      companyName: "네오로직스",
+      contactName: "정소연",
+      email: "sy.jeong@neologics.co.kr",
+      phone: "02-6012-1098",
+      businessNumber: "214-88-01942",
+    },
+    projectCount: 2,
+    activeProjectCount: 2,
+    latestProjectAt: "오늘 11:24",
+    projects: [
+      {
+        id: "neologics-medical-ai",
+        projectName: "의료 AI 모델 안전성 검증",
+        status: "내부검토",
+        statusTone: "review",
+        owner: "이서준",
+        intakeSource: "web",
+        nextAction: "사장님 검토 반영",
+        updatedAt: "오늘 11:24",
+      },
+      {
+        id: "neologics-report-revision",
+        projectName: "성적서 문구 보완 검토",
+        status: "고객검토",
+        statusTone: "review",
+        owner: "박지은",
+        intakeSource: "phone",
+        nextAction: "고객 피드백 확인",
+        updatedAt: "어제 16:40",
+      },
+    ],
+  },
+  {
+    client: {
+      id: "techwave",
+      companyName: "테크웨이브",
+      contactName: "이준호",
+      email: "jh.lee@techwave.ai",
+      phone: "031-778-4420",
+      businessNumber: "129-86-44712",
+    },
+    projectCount: 2,
+    activeProjectCount: 1,
+    latestProjectAt: "어제 15:10",
+    projects: [
+      {
+        id: "techwave-security",
+        projectName: "S/W 취약점 및 운영환경 검증",
+        status: "회신대기",
+        statusTone: "in-progress",
+        owner: "박지은",
+        intakeSource: "web",
+        nextAction: "팔로업 메일 초안 검토",
+        updatedAt: "어제 15:10",
+      },
+      {
+        id: "techwave-final-report",
+        projectName: "기존 검증 건 최종 성적서 정리",
+        status: "완료",
+        statusTone: "done",
+        owner: "정하늘",
+        intakeSource: "phone",
+        nextAction: "완료 보관",
+        updatedAt: "3월 18일",
+      },
+    ],
+  },
+  {
+    client: {
+      id: "bluesense",
+      companyName: "블루센스",
+      contactName: "김다은",
+      email: "contact@bluesense.kr",
+      phone: "070-4112-7788",
+    },
+    projectCount: 1,
+    activeProjectCount: 1,
+    latestProjectAt: "오늘 09:40",
+    projects: [
+      {
+        id: "bluesense-vision",
+        projectName: "영상 분석 모델 성능 검증",
+        status: "시험진행중",
+        statusTone: "in-progress",
+        owner: "김민수",
+        intakeSource: "web",
+        nextAction: "시험 사진 및 증적 링크 적재",
+        updatedAt: "오늘 09:40",
+      },
+    ],
+  },
+  {
+    client: {
+      id: "aimedics",
+      companyName: "AI메딕스",
+      contactName: "윤세영",
+      email: "sy.yoon@aimedics.ai",
+      phone: "02-512-9081",
+      businessNumber: "110-81-77231",
+    },
+    projectCount: 1,
+    activeProjectCount: 1,
+    latestProjectAt: "오늘 08:12",
+    projects: [
+      {
+        id: "aimedics-inference",
+        projectName: "추론 서버 환경 검증",
+        status: "g4v업로드",
+        statusTone: "done",
+        owner: "이서준",
+        intakeSource: "phone",
+        nextAction: "문제 발생 여부 확인 후 완료 전환",
+        updatedAt: "오늘 08:12",
+      },
+    ],
   },
 ];
 

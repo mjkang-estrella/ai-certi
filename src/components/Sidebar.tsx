@@ -9,7 +9,7 @@ export function Sidebar() {
       <div className="brand">
         <div className="brand-mark">AI</div>
         <div>
-          <div className="brand-title">한국인공지능검증원 CMS</div>
+          <div className="brand-title">KAIC CMS</div>
           <div className="brand-sub">Client Management System</div>
         </div>
       </div>

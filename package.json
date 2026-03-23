@@ -2,7 +2,7 @@
   "name": "ai-certi",
   "version": "1.0.0",
   "private": true,
-  "description": "한국인공지능검증원 Client Management System 프론트엔드",
+  "description": "KAIC CMS 프론트엔드",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

@@ -1,13 +1,19 @@
-import { projects } from "../data/dashboard";
+import { Link } from "react-router-dom";
+import { dashboardProjects, projects } from "../data/dashboard";
 
 export function ProjectsTable() {
+  const activeProjects = projects.filter((project) => !project.isCompleted);
+
   return (
     <section className="projects card">
       <div className="section-head">
         <div>
           <h2 className="section-title">진행중 프로젝트</h2>
-          <p className="section-copy">현재 진행 4건</p>
+          <p className="section-copy">현재 진행 {activeProjects.length}건</p>
         </div>
+        <Link className="button ghost section-link" to="/projects">
+          전체 보기
+        </Link>
       </div>
 
       <div className="table-wrap desktop-only">
@@ -22,14 +28,14 @@ export function ProjectsTable() {
             </tr>
           </thead>
           <tbody>
-            {projects.map((project) => (
-              <tr key={`${project.company}-${project.project}`}>
+            {dashboardProjects.map((project) => (
+              <tr key={project.id}>
                 <td>
                   <div className="company-name">{project.company}</div>
                   <div className="company-sub">{project.project}</div>
                 </td>
                 <td>
-                  <span className={`state ${project.stateTone}`}>{project.state}</span>
+                  <span className={`state ${project.statusTone}`}>{project.status}</span>
                 </td>
                 <td>
                   <div className="company-name">{project.owner}</div>
@@ -47,14 +53,14 @@ export function ProjectsTable() {
       </div>
 
       <div className="mobile-stack mobile-only">
-        {projects.map((project) => (
-          <article className="mobile-card" key={`${project.company}-${project.project}`}>
+        {dashboardProjects.map((project) => (
+          <article className="mobile-card" key={project.id}>
             <div className="mobile-card-head">
               <div>
                 <div className="company-name">{project.company}</div>
                 <div className="company-sub">{project.project}</div>
               </div>
-              <span className={`state ${project.stateTone}`}>{project.state}</span>
+              <span className={`state ${project.statusTone}`}>{project.status}</span>
             </div>
 
             <div className="mobile-project-row">

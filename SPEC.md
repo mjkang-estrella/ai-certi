@@ -2,7 +2,7 @@
 project_type: greenfield
 draft_origin: structured
 clarification_rounds_completed: 4
-title: 한국인공지능검증원 Client Management System v1
+title: KAIC CMS v1
 goal: 공개 의뢰서 접수부터 시험 완료까지의 전체 진행상황을 내부 CMS에서 추적하고 관리자 및 직원이 운영 현황을 모니터링할 수 있는 시스템을 정의한다.
 target_user: 한국인공지능검증원의 내부 관리자와 직원
 owner: 한국인공지능검증원 운영팀

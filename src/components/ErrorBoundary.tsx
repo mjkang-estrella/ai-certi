@@ -13,8 +13,15 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return this.props.fallback ?? (
-        <div className="card section-skeleton">
-          콘텐츠를 불러오는 중 문제가 발생했습니다. 페이지를 새로고침 해주세요.
+        <div className="card section-skeleton error-fallback">
+          <p>콘텐츠를 불러오는 중 문제가 발생했습니다.</p>
+          <button
+            type="button"
+            className="button ghost"
+            onClick={() => window.location.reload()}
+          >
+            새로고침
+          </button>
         </div>
       );
     }

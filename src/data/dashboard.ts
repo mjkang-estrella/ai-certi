@@ -30,12 +30,6 @@ export type Examiner = {
   };
 };
 
-export type SummaryItem = {
-  title: string;
-  description: string;
-  value: string;
-};
-
 export type ActionItem = {
   priority: "긴급" | "검토" | "일정" | "추적";
   tone: "danger" | "warn";

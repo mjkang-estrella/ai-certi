@@ -16,7 +16,7 @@ export function ProjectsTable() {
             <tr>
               <th scope="col">기업 / 프로젝트</th>
               <th scope="col">현재 상태</th>
-              <th scope="col">담당자</th>
+              <th scope="col">시험원</th>
               <th scope="col">다음 액션</th>
               <th scope="col">최근 업데이트</th>
             </tr>
@@ -58,7 +58,7 @@ export function ProjectsTable() {
             </div>
 
             <div className="mobile-project-row">
-              <span>담당자</span>
+              <span>시험원</span>
               <strong>{project.owner}</strong>
             </div>
             <div className="mobile-project-row subdued">

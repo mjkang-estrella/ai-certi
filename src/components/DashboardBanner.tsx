@@ -12,11 +12,11 @@ export function DashboardBanner() {
 
       <div className="pipeline">
         {pipelineStages.map((stage, i) => (
-          <div className="pipeline-stage" key={stage.title}>
+          <div className="pipeline-stage" key={stage.title} role="group" aria-label={`${stage.title} 단계`}>
             <div className="pipeline-stage-head">
               <span className="pipeline-stage-title">{stage.title}</span>
               {i < pipelineStages.length - 1 && (
-                <span className="pipeline-arrow" aria-hidden="true" />
+                <span className="pipeline-arrow" aria-hidden="true">›</span>
               )}
             </div>
             <div className="pipeline-metrics">

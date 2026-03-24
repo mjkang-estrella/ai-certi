@@ -1,3 +1,4 @@
+import { Link, useNavigate } from "react-router-dom";
 import type { ClientListItem, IntakeSource } from "../data/dashboard";
 
 type CompanyDetailPanelProps = {
@@ -8,7 +9,13 @@ function formatIntakeSource(source: IntakeSource) {
   return source === "web" ? "웹 접수" : "전화 접수";
 }
 
+function isInteractiveTarget(target: EventTarget | null) {
+  return target instanceof HTMLElement && Boolean(target.closest("a, button, input, label, select, textarea"));
+}
+
 export function CompanyDetailPanel({ item }: CompanyDetailPanelProps) {
+  const navigate = useNavigate();
+
   if (!item) {
     return (
       <section className="card company-detail">
@@ -72,9 +79,25 @@ export function CompanyDetailPanel({ item }: CompanyDetailPanelProps) {
           </thead>
           <tbody>
             {item.projects.map((project) => (
-              <tr key={project.id}>
+              <tr
+                key={project.id}
+                className="clickable-row"
+                role="link"
+                tabIndex={0}
+                onClick={(event) => {
+                  if (!isInteractiveTarget(event.target)) {
+                    navigate(`/projects/${project.id}`);
+                  }
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    navigate(`/projects/${project.id}`);
+                  }
+                }}
+              >
                 <td>
-                  <div className="company-name">{project.projectName}</div>
+                  <Link className="table-link" to={`/projects/${project.id}`}>{project.projectName}</Link>
                 </td>
                 <td>
                   <span className={`state ${project.statusTone}`}>{project.status}</span>
@@ -95,10 +118,26 @@ export function CompanyDetailPanel({ item }: CompanyDetailPanelProps) {
 
       <div className="mobile-stack mobile-only">
         {item.projects.map((project) => (
-          <article className="mobile-card" key={project.id}>
+          <article
+            className="mobile-card clickable-card"
+            key={project.id}
+            role="link"
+            tabIndex={0}
+            onClick={(event) => {
+              if (!isInteractiveTarget(event.target)) {
+                navigate(`/projects/${project.id}`);
+              }
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                navigate(`/projects/${project.id}`);
+              }
+            }}
+          >
             <div className="mobile-card-head">
               <div>
-                <div className="company-name">{project.projectName}</div>
+                <Link className="table-link" to={`/projects/${project.id}`}>{project.projectName}</Link>
                 <div className="company-sub">{formatIntakeSource(project.intakeSource)}</div>
               </div>
               <span className={`state ${project.statusTone}`}>{project.status}</span>

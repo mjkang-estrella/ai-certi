@@ -596,3 +596,382 @@ export const weeklySchedule: InfoItem[] = [
     description: "전화 재접촉 또는 메일 초안 확정",
   },
 ];
+
+export type ProjectDetailTaskStatus = "todo" | "done";
+export type ProjectTaskPriority = "high" | "medium" | "low";
+export type ProjectDetailNoteKind = "상담" | "내부" | "회의";
+export type WorkflowStepState = "done" | "current" | "upcoming";
+
+export type ProjectStatusHistoryEntry = {
+  status: ProjectStatus;
+  changedAt: string;
+  note: string;
+};
+
+export type ProjectDetailNote = {
+  id: string;
+  kind: ProjectDetailNoteKind;
+  title: string;
+  content: string;
+  author: string;
+  createdAt: string;
+};
+
+export type ProjectArtifactLink = {
+  id: string;
+  category: string;
+  label: string;
+  href: string;
+  description: string;
+  owner: string;
+  updatedAt: string;
+};
+
+export type ProjectDetailTask = {
+  id: string;
+  title: string;
+  description: string;
+  owner: string;
+  dueText: string;
+  priority: ProjectTaskPriority;
+  status: ProjectDetailTaskStatus;
+};
+
+export type ProjectWorkflowStep = {
+  label: string;
+  detail: string;
+  state: WorkflowStepState;
+};
+
+export type ProjectWorkflowSummary = {
+  title: string;
+  description: string;
+  statusLabel: string;
+  tone: ProjectStateTone;
+  steps: ProjectWorkflowStep[];
+};
+
+export type ProjectDispatchSummary = {
+  quoteSentAt: string | null;
+  applicationSentAt: string | null;
+  latestReplyStatus: "회신 대기" | "일부 회신" | "회신 완료" | "추가 확인 필요";
+  reminderDueAt: string;
+  lastFollowUpNote: string;
+};
+
+export type ProjectDetailRecord = ProjectRow & {
+  client: ClientRecord;
+  requestSummary: string;
+  requestedOutcome: string;
+  requestedAt: string;
+  reportDueLabel: string;
+  coordinatorNote: string;
+  dispatchSummary: ProjectDispatchSummary;
+  statusHistory: ProjectStatusHistoryEntry[];
+  notes: ProjectDetailNote[];
+  artifactLinks: ProjectArtifactLink[];
+  reportWorkflow: ProjectWorkflowSummary;
+  g4vWorkflow: ProjectWorkflowSummary;
+  tasks: ProjectDetailTask[];
+};
+
+type ProjectDetailOverrides = {
+  dispatchSummary?: ProjectDispatchSummary;
+  notes?: ProjectDetailNote[];
+};
+
+export type ProjectDetailRecordUpdate = Partial<
+  Pick<ProjectRow, "status" | "nextAction" | "nextActionNote" | "needsReminder" | "updatedAt" | "updatedAtSortKey">
+> & {
+  dispatchSummary?: ProjectDispatchSummary;
+  notes?: ProjectDetailNote[];
+};
+
+const statusHistoryMoments = [
+  "3월 12일 09:20",
+  "3월 12일 14:10",
+  "3월 13일 10:30",
+  "3월 15일 16:05",
+  "3월 17일 11:20",
+  "3월 18일 15:40",
+  "3월 19일 13:15",
+  "3월 20일 10:00",
+  "3월 21일 14:45",
+  "3월 22일 09:35",
+  "3월 22일 17:10",
+  "3월 23일 08:40",
+  "3월 23일 16:20",
+] as const;
+
+const reportWorkflowLabels: Array<{ status: ProjectStatus; detail: string }> = [
+  { status: "성적서초안", detail: "초안 문구와 표지 정보 정리" },
+  { status: "내부검토", detail: "내부 검토 의견 반영" },
+  { status: "고객검토", detail: "고객 피드백 수렴" },
+  { status: "최종확정", detail: "최종본 확정 및 제출 준비" },
+];
+
+const g4vWorkflowLabels: Array<{ label: string; pivot: ProjectStatus; detail: string }> = [
+  { label: "업로드 준비", pivot: "최종확정", detail: "제출 파일과 메타 정보 정리" },
+  { label: "g4v 업로드", pivot: "g4v업로드", detail: "사이트 업로드와 등록 정보 확인" },
+  { label: "검증 확인", pivot: "g4v업로드", detail: "업로드 후 오류 및 보완 사항 점검" },
+  { label: "완료 전환", pivot: "완료", detail: "문제 없으면 프로젝트 종료 처리" },
+];
+
+function getCurrentStatusIndex(status: ProjectStatus) {
+  return projectStatuses.indexOf(status);
+}
+
+function buildStatusHistory(project: ProjectRow): ProjectStatusHistoryEntry[] {
+  const currentIndex = getCurrentStatusIndex(project.status);
+
+  return projectStatuses.slice(0, currentIndex + 1).map((status, index) => ({
+    status,
+    changedAt: statusHistoryMoments[index] ?? project.updatedAt,
+    note:
+      status === project.status
+        ? `${project.nextAction} 중심으로 운영 중 · ${project.nextActionNote}`
+        : `${status} 단계 기본 체크리스트를 완료하고 다음 단계 준비`,
+  }));
+}
+
+function buildNotes(project: ProjectRow, client: ClientRecord): ProjectDetailNote[] {
+  return [
+    {
+      id: `${project.id}-note-1`,
+      kind: "상담",
+      title: "초기 요청 정리",
+      content: `${client.contactName} 담당자와 접수 내용을 확인하고 '${project.project}' 범위와 제출 일정 기대치를 정리했습니다.`,
+      author: project.owner,
+      createdAt: "3월 12일 10:15",
+    },
+    {
+      id: `${project.id}-note-2`,
+      kind: "내부",
+      title: "운영 메모",
+      content: `현재 핵심 포인트는 ${project.nextAction}입니다. ${project.nextActionNote} 메모를 기준으로 일정 리스크를 함께 추적합니다.`,
+      author: "운영팀",
+      createdAt: "3월 18일 14:20",
+    },
+    {
+      id: `${project.id}-note-3`,
+      kind: "회의",
+      title: "상태 공유 회의",
+      content: `담당자 ${project.owner} 기준으로 현재 상태 '${project.status}'에서 필요한 확인 항목을 공유했습니다.`,
+      author: "이서준",
+      createdAt: "3월 21일 09:40",
+    },
+    {
+      id: `${project.id}-note-4`,
+      kind: "내부",
+      title: "후속 조치 메모",
+      content: `자료 링크, 성적서 단계, g4v 준비 여부를 한 화면에서 점검할 수 있도록 상세 구조를 유지합니다.`,
+      author: "박지은",
+      createdAt: project.updatedAt,
+    },
+  ];
+}
+
+function buildDispatchSummary(project: ProjectRow): ProjectDispatchSummary {
+  const currentIndex = getCurrentStatusIndex(project.status);
+  const dispatchIndex = getCurrentStatusIndex("견적/신청서 발송");
+  const assignedIndex = getCurrentStatusIndex("시험원배정");
+
+  return {
+    quoteSentAt: currentIndex >= dispatchIndex ? "3월 13일 14:00" : null,
+    applicationSentAt: currentIndex >= dispatchIndex ? "3월 13일 14:05" : null,
+    latestReplyStatus:
+      project.status === "회신대기"
+        ? "회신 대기"
+        : currentIndex >= assignedIndex
+          ? "회신 완료"
+          : currentIndex >= dispatchIndex
+            ? "일부 회신"
+            : "추가 확인 필요",
+    reminderDueAt: project.needsReminder ? "오늘 18:00" : "미설정",
+    lastFollowUpNote: project.needsReminder
+      ? `${project.nextAction} 전 고객 재확인 필요`
+      : `${project.nextAction} 기준으로 후속 기록 정리 완료`,
+  };
+}
+
+function buildArtifactLinks(project: ProjectRow, client: ClientRecord): ProjectArtifactLink[] {
+  return [
+    {
+      id: `${project.id}-artifact-1`,
+      category: "접수 자료",
+      label: `${client.companyName} 의뢰 자료 원본`,
+      href: `https://files.example.com/${project.id}/request`,
+      description: "요청서, 범위 문서, 참고 메모 링크",
+      owner: project.owner,
+      updatedAt: "3월 18일 11:10",
+    },
+    {
+      id: `${project.id}-artifact-2`,
+      category: "시험 자료",
+      label: `${project.project} 시험 증적`,
+      href: `https://files.example.com/${project.id}/evidence`,
+      description: "시험 사진, 로그, 확인 캡처 묶음",
+      owner: "김민수",
+      updatedAt: "3월 22일 15:20",
+    },
+    {
+      id: `${project.id}-artifact-3`,
+      category: "성적서",
+      label: `${project.project} 성적서 작업 폴더`,
+      href: `https://files.example.com/${project.id}/report`,
+      description: "초안, 내부 검토본, 최종본 링크",
+      owner: project.owner,
+      updatedAt: project.updatedAt,
+    },
+  ];
+}
+
+function getWorkflowStepState(currentIndex: number, stepIndex: number) {
+  if (currentIndex > stepIndex) return "done" as const;
+  if (currentIndex === stepIndex) return "current" as const;
+  return "upcoming" as const;
+}
+
+function buildReportWorkflow(project: ProjectRow): ProjectWorkflowSummary {
+  const currentIndex = reportWorkflowLabels.findIndex((item) => item.status === project.status);
+
+  return {
+    title: "성적서 흐름",
+    description: "성적서 작성부터 최종 확정까지의 후반 운영 단계를 확인합니다.",
+    statusLabel:
+      currentIndex === -1 ? (getCurrentStatusIndex(project.status) > getCurrentStatusIndex("최종확정") ? "완료 이후 단계" : "아직 진입 전") : project.status,
+    tone: project.statusTone,
+    steps: reportWorkflowLabels.map((item, index) => ({
+      label: item.status,
+      detail: item.detail,
+      state: currentIndex === -1 ? (getCurrentStatusIndex(project.status) > getCurrentStatusIndex("최종확정") ? "done" : "upcoming") : getWorkflowStepState(currentIndex, index),
+    })),
+  };
+}
+
+function buildG4vWorkflow(project: ProjectRow): ProjectWorkflowSummary {
+  const currentIndex =
+    project.status === "완료" ? 3 : project.status === "g4v업로드" ? 2 : getCurrentStatusIndex(project.status) >= getCurrentStatusIndex("최종확정") ? 0 : -1;
+
+  return {
+    title: "g4v 추적",
+    description: "업로드 준비부터 완료 전환 전 확인 단계까지 묶어서 봅니다.",
+    statusLabel:
+      currentIndex === -1
+        ? "아직 준비 전"
+        : currentIndex >= 2
+          ? project.status === "완료"
+            ? "완료 반영"
+            : "업로드 후 검증중"
+          : "업로드 준비중",
+    tone: project.status === "완료" ? "done" : project.status === "g4v업로드" ? "review" : "in-progress",
+    steps: g4vWorkflowLabels.map((item, index) => ({
+      label: item.label,
+      detail: item.detail,
+      state: currentIndex === -1 ? "upcoming" : getWorkflowStepState(currentIndex, index),
+    })),
+  };
+}
+
+function buildTasks(project: ProjectRow): ProjectDetailTask[] {
+  return [
+    {
+      id: `${project.id}-task-1`,
+      title: project.nextAction,
+      description: project.nextActionNote,
+      owner: project.owner,
+      dueText: "가장 먼저 확인",
+      priority: project.needsReminder ? "high" : "medium",
+      status: "todo",
+    },
+    {
+      id: `${project.id}-task-2`,
+      title: "자료 링크 최신화",
+      description: "시험/성적서 관련 링크 메타 정보를 최신 상태로 맞춥니다.",
+      owner: project.owner,
+      dueText: "오늘 마감 전",
+      priority: "medium",
+      status: project.status === "접수" || project.status === "상담중" ? "todo" : "done",
+    },
+    {
+      id: `${project.id}-task-3`,
+      title: "내부 공유 메모 정리",
+      description: "최근 상담/회의 내용을 운영 메모 기준으로 정리합니다.",
+      owner: "운영팀",
+      dueText: "이번 주",
+      priority: "low",
+      status: "done",
+    },
+    {
+      id: `${project.id}-task-4`,
+      title: project.needsReminder ? "리마인더 후속 연락" : "상태 점검 리마인더",
+      description: project.needsReminder
+        ? "회신 지연 또는 완료 전 확인이 필요한 건으로 후속 연락 필요"
+        : "다음 단계 전환 전 누락 항목이 없는지 확인",
+      owner: project.owner,
+      dueText: project.needsReminder ? "즉시" : "이번 주",
+      priority: project.needsReminder ? "high" : "medium",
+      status: project.needsReminder ? "todo" : "done",
+    },
+    {
+      id: `${project.id}-task-5`,
+      title: "후반 단계 체크리스트 검토",
+      description: "성적서와 g4v 흐름을 한 번에 검토해 종료 조건을 확인합니다.",
+      owner: CURRENT_USER_NAME,
+      dueText: "상태 전환 전",
+      priority: getCurrentStatusIndex(project.status) >= getCurrentStatusIndex("성적서초안") ? "medium" : "low",
+      status: getCurrentStatusIndex(project.status) >= getCurrentStatusIndex("시험진행중") ? "todo" : "done",
+    },
+  ];
+}
+
+function buildProjectDetail(project: ProjectRow, overrides: ProjectDetailOverrides = {}): ProjectDetailRecord {
+  const client = clientRecords.find((item) => item.id === project.companyId);
+
+  if (!client) {
+    throw new Error(`Client not found for project ${project.id}`);
+  }
+
+  return {
+    ...project,
+    client,
+    requestSummary: `${project.company}의 '${project.project}' 운영 현황과 후속 조치 항목을 정리한 상세 화면입니다.`,
+    requestedOutcome:
+      getCurrentStatusIndex(project.status) >= getCurrentStatusIndex("성적서초안")
+        ? "성적서 확정과 제출 후 완료 전환까지 문제 없이 마감"
+        : "시험 협의, 시험 진행, 후속 자료 정리가 끊기지 않도록 운영",
+    requestedAt: project.intakeSource === "web" ? "웹 의뢰서 접수 건" : "전화 접수 후 수기 등록 건",
+    reportDueLabel:
+      getCurrentStatusIndex(project.status) >= getCurrentStatusIndex("고객검토") ? "이번 주 마감 대상" : "일정 협의 후 확정 예정",
+    coordinatorNote: `${project.owner} 담당 기준으로 현재 '${project.status}' 단계이며, 다음 액션은 '${project.nextAction}'입니다.`,
+    dispatchSummary: overrides.dispatchSummary ?? buildDispatchSummary(project),
+    statusHistory: buildStatusHistory(project),
+    notes: overrides.notes ?? buildNotes(project, client),
+    artifactLinks: buildArtifactLinks(project, client),
+    reportWorkflow: buildReportWorkflow(project),
+    g4vWorkflow: buildG4vWorkflow(project),
+    tasks: buildTasks(project),
+  };
+}
+
+export const projectDetails = projects.map((project) => buildProjectDetail(project));
+
+export function getProjectDetail(projectId: string) {
+  return projectDetails.find((project) => project.id === projectId) ?? null;
+}
+
+export function updateProjectDetailRecord(detail: ProjectDetailRecord, updates: ProjectDetailRecordUpdate) {
+  const nextStatus = updates.status ?? detail.status;
+  const nextProject: ProjectRow = {
+    ...detail,
+    ...updates,
+    status: nextStatus,
+    statusTone: projectStatusMeta[nextStatus].tone,
+    isCompleted: projectStatusMeta[nextStatus].isCompleted,
+  };
+
+  return buildProjectDetail(nextProject, {
+    dispatchSummary: updates.dispatchSummary ?? detail.dispatchSummary,
+    notes: updates.notes ?? detail.notes,
+  });
+}

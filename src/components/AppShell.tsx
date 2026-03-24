@@ -47,6 +47,15 @@ const projectsHeader: HeaderConfig = {
   searchPlaceholder: "기업명, 담당자, 프로젝트 검색",
 };
 
+const projectDetailHeader: HeaderConfig = {
+  title: "프로젝트 상세",
+  description: "현재 상태와 다음 액션, 운영 기록을 한 화면에서 확인합니다.",
+  showSearch: false,
+  searchId: "project-detail-search",
+  searchHelpText: "프로젝트 상세 화면에서는 검색을 사용하지 않습니다.",
+  searchPlaceholder: "검색 사용 안 함",
+};
+
 export function AppShell() {
   const location = useLocation();
   const [dashboardSearch, setDashboardSearch] = useState("");
@@ -54,11 +63,18 @@ export function AppShell() {
   const [projectSearch, setProjectSearch] = useState("");
 
   const isCompaniesRoute = location.pathname.startsWith("/companies");
+  const isProjectDetailRoute = /^\/projects\/[^/]+$/.test(location.pathname);
   const isProjectsRoute = location.pathname.startsWith("/projects");
 
-  const header = isCompaniesRoute ? companiesHeader : isProjectsRoute ? projectsHeader : dashboardHeader;
+  const header = isCompaniesRoute
+    ? companiesHeader
+    : isProjectDetailRoute
+      ? projectDetailHeader
+      : isProjectsRoute
+        ? projectsHeader
+        : dashboardHeader;
   const searchValue = isProjectsRoute ? projectSearch : isCompaniesRoute ? companySearch : dashboardSearch;
-  const setSearchValue = isProjectsRoute
+  const setSearchValue = isProjectsRoute && !isProjectDetailRoute
     ? setProjectSearch
     : isCompaniesRoute
       ? setCompanySearch

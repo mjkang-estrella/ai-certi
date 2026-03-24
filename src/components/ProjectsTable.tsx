@@ -1,7 +1,12 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { dashboardProjects, projects } from "../data/dashboard";
 
+function isInteractiveTarget(target: EventTarget | null) {
+  return target instanceof HTMLElement && Boolean(target.closest("a, button, input, label, select, textarea"));
+}
+
 export function ProjectsTable() {
+  const navigate = useNavigate();
   const activeProjects = projects.filter((project) => !project.isCompleted);
 
   return (
@@ -29,10 +34,26 @@ export function ProjectsTable() {
           </thead>
           <tbody>
             {dashboardProjects.map((project) => (
-              <tr key={project.id}>
+              <tr
+                key={project.id}
+                className="clickable-row"
+                role="link"
+                tabIndex={0}
+                onClick={(event) => {
+                  if (!isInteractiveTarget(event.target)) {
+                    navigate(`/projects/${project.id}`);
+                  }
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    navigate(`/projects/${project.id}`);
+                  }
+                }}
+              >
                 <td>
                   <div className="company-name">{project.company}</div>
-                  <div className="company-sub">{project.project}</div>
+                  <Link className="table-link" to={`/projects/${project.id}`}>{project.project}</Link>
                 </td>
                 <td>
                   <span className={`state ${project.statusTone}`}>{project.status}</span>
@@ -54,11 +75,27 @@ export function ProjectsTable() {
 
       <div className="mobile-stack mobile-only">
         {dashboardProjects.map((project) => (
-          <article className="mobile-card" key={project.id}>
+          <article
+            className="mobile-card clickable-card"
+            key={project.id}
+            role="link"
+            tabIndex={0}
+            onClick={(event) => {
+              if (!isInteractiveTarget(event.target)) {
+                navigate(`/projects/${project.id}`);
+              }
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                navigate(`/projects/${project.id}`);
+              }
+            }}
+          >
             <div className="mobile-card-head">
               <div>
                 <div className="company-name">{project.company}</div>
-                <div className="company-sub">{project.project}</div>
+                <Link className="table-link" to={`/projects/${project.id}`}>{project.project}</Link>
               </div>
               <span className={`state ${project.statusTone}`}>{project.status}</span>
             </div>

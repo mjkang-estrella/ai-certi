@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useParams } from "react-router-dom";
+import { useDashboardData } from "../components/DashboardDataProvider";
 import { DetailSectionCard } from "../components/DetailSectionCard";
 import { ProjectArtifactLinks } from "../components/ProjectArtifactLinks";
 import { ProjectDispatchTracker } from "../components/ProjectDispatchTracker";
@@ -11,11 +12,8 @@ import { ProjectTaskBoard } from "../components/ProjectTaskBoard";
 import { ProjectWorkflowSummaryCard } from "../components/ProjectWorkflowSummaryCard";
 import {
   CURRENT_USER_NAME,
-  getProjectDetail,
   projectStatuses,
-  updateProjectDetailRecord,
   type ProjectDetailNote,
-  type ProjectDetailRecord,
   type ProjectDetailNoteKind,
   type ProjectDispatchSummary,
   type ProjectStatus,
@@ -65,20 +63,20 @@ function createLocalUpdatePatch() {
 
 export function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>();
-  const sourceDetail = useMemo(() => (projectId ? getProjectDetail(projectId) : null), [projectId]);
-  const [detail, setDetail] = useState<ProjectDetailRecord | null>(sourceDetail);
+  const { getProjectDetail, updateProjectDetail } = useDashboardData();
+  const detail = useMemo(() => (projectId ? getProjectDetail(projectId) : null), [getProjectDetail, projectId]);
   const [activeSection, setActiveSection] = useState<string>(sections[0].id);
   const [isStatusEditing, setIsStatusEditing] = useState(false);
-  const [statusDraft, setStatusDraft] = useState<ProjectStatus>(sourceDetail?.status ?? projectStatuses[0]);
+  const [statusDraft, setStatusDraft] = useState<ProjectStatus>(detail?.status ?? projectStatuses[0]);
   const [isNextActionEditing, setIsNextActionEditing] = useState(false);
-  const [nextActionDraft, setNextActionDraft] = useState(sourceDetail?.nextAction ?? "");
-  const [nextActionNoteDraft, setNextActionNoteDraft] = useState(sourceDetail?.nextActionNote ?? "");
+  const [nextActionDraft, setNextActionDraft] = useState(detail?.nextAction ?? "");
+  const [nextActionNoteDraft, setNextActionNoteDraft] = useState(detail?.nextActionNote ?? "");
   const [isDispatchEditing, setIsDispatchEditing] = useState(false);
   const [dispatchDraft, setDispatchDraft] = useState<DispatchFormState | null>(
-    sourceDetail
+    detail
       ? {
-          ...sourceDetail.dispatchSummary,
-          needsReminder: sourceDetail.needsReminder,
+          ...detail.dispatchSummary,
+          needsReminder: detail.needsReminder,
         }
       : null,
   );
@@ -86,25 +84,24 @@ export function ProjectDetailPage() {
   const [noteDraft, setNoteDraft] = useState<NoteFormState>(emptyNoteForm);
 
   useEffect(() => {
-    setDetail(sourceDetail);
     setActiveSection(sections[0].id);
     setIsStatusEditing(false);
-    setStatusDraft(sourceDetail?.status ?? projectStatuses[0]);
+    setStatusDraft(detail?.status ?? projectStatuses[0]);
     setIsNextActionEditing(false);
-    setNextActionDraft(sourceDetail?.nextAction ?? "");
-    setNextActionNoteDraft(sourceDetail?.nextActionNote ?? "");
+    setNextActionDraft(detail?.nextAction ?? "");
+    setNextActionNoteDraft(detail?.nextActionNote ?? "");
     setIsDispatchEditing(false);
     setDispatchDraft(
-      sourceDetail
+      detail
         ? {
-            ...sourceDetail.dispatchSummary,
-            needsReminder: sourceDetail.needsReminder,
+            ...detail.dispatchSummary,
+            needsReminder: detail.needsReminder,
           }
         : null,
     );
     setIsAddingNote(false);
     setNoteDraft(emptyNoteForm);
-  }, [sourceDetail]);
+  }, [detail]);
 
   useEffect(() => {
     const elements = sections
@@ -137,13 +134,11 @@ export function ProjectDetailPage() {
   }, [detail]);
 
   if (!detail) {
-    return <Navigate to="/projects" replace />;
+    return <Navigate to="/projects?scope=active" replace />;
   }
 
-  const applyDetailUpdate = (
-    updates: Parameters<typeof updateProjectDetailRecord>[1],
-  ) => {
-    setDetail((current) => (current ? updateProjectDetailRecord(current, { ...createLocalUpdatePatch(), ...updates }) : current));
+  const applyDetailUpdate = (updates: Parameters<typeof updateProjectDetail>[1]) => {
+    updateProjectDetail(detail.id, { ...createLocalUpdatePatch(), ...updates });
   };
 
   const handleStatusSave = () => {

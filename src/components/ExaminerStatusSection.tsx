@@ -1,4 +1,4 @@
-import { examiners } from "../data/dashboard";
+import { useDashboardData } from "./DashboardDataProvider";
 
 function getTone(value: number, emphasis: "coordination" | "testing" | "reporting" | "issued" | "submitted" | "completed") {
   if (emphasis === "completed" && value >= 3) return " good";
@@ -9,12 +9,14 @@ function getTone(value: number, emphasis: "coordination" | "testing" | "reportin
 }
 
 export function ExaminerStatusSection() {
+  const { examiners } = useDashboardData();
+
   return (
     <div className="card">
       <div className="section-head">
         <div>
           <h2 className="section-title">시험원별 진행상황</h2>
-          <p className="section-copy">이번 달 기준 · 6명</p>
+          <p className="section-copy">이번 달 기준 · {examiners.length}명</p>
         </div>
       </div>
 

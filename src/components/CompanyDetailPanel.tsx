@@ -1,8 +1,9 @@
 import { Link, useNavigate } from "react-router-dom";
-import type { ClientListItem, IntakeSource } from "../data/dashboard";
+import type { ClientListItem, IntakeSource, ScopeFilter } from "../data/dashboard";
 
 type CompanyDetailPanelProps = {
   item: ClientListItem | null;
+  scope: ScopeFilter;
 };
 
 function formatIntakeSource(source: IntakeSource) {
@@ -13,7 +14,7 @@ function isInteractiveTarget(target: EventTarget | null) {
   return target instanceof HTMLElement && Boolean(target.closest("a, button, input, label, select, textarea"));
 }
 
-export function CompanyDetailPanel({ item }: CompanyDetailPanelProps) {
+export function CompanyDetailPanel({ item, scope }: CompanyDetailPanelProps) {
   const navigate = useNavigate();
 
   if (!item) {
@@ -23,6 +24,11 @@ export function CompanyDetailPanel({ item }: CompanyDetailPanelProps) {
       </section>
     );
   }
+
+  const relatedProjectsCopy =
+    scope === "completed"
+      ? "완료 이력을 중심으로 기업별 프로젝트 종료 맥락을 확인합니다."
+      : "기업 단위에서 현재 상태와 다음 액션을 함께 확인합니다.";
 
   return (
     <section className="card company-detail">
@@ -61,7 +67,7 @@ export function CompanyDetailPanel({ item }: CompanyDetailPanelProps) {
       <div className="section-head section-head-compact">
         <div>
           <h3 className="section-title">관련 프로젝트</h3>
-          <p className="section-copy">기업 단위에서 현재 상태와 다음 액션을 함께 확인합니다.</p>
+          <p className="section-copy">{relatedProjectsCopy}</p>
         </div>
       </div>
 

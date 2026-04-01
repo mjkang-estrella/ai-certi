@@ -17,14 +17,17 @@ function formatIntakeSource(source: ProjectDetailRecord["intakeSource"]) {
 }
 
 export function ProjectDetailHeader({ detail, onJump }: ProjectDetailHeaderProps) {
+  const projectListHref = detail.isCompleted ? "/projects?scope=completed" : "/projects?scope=active";
+  const companyListHref = detail.isCompleted ? "/companies?scope=completed" : "/companies?scope=active";
+
   return (
     <section className="card project-detail-hero">
       <div className="project-detail-hero-top">
         <div>
           <div className="project-breadcrumbs">
-            <Link to="/projects">프로젝트</Link>
+            <Link to={projectListHref}>프로젝트</Link>
             <span>/</span>
-            <Link to="/companies">기업 목록</Link>
+            <Link to={companyListHref}>기업</Link>
           </div>
           <div className="project-detail-title-row">
             <div>

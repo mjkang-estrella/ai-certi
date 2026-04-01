@@ -1,9 +1,19 @@
 export type SidebarItem = {
   label: string;
   href: string;
+  groupKey: "active" | "completed";
+  mobileLabel?: string;
   badge?: string;
+  badgeAriaLabel?: string;
   tone?: "default" | "danger";
 };
+
+export type SidebarSection = {
+  label: string;
+  items: SidebarItem[];
+};
+
+export type ScopeFilter = "active" | "completed";
 
 export type BannerMetric = {
   label: string;
@@ -390,182 +400,322 @@ function byUpdatedAtDesc(a: { updatedAtSortKey: string }, b: { updatedAtSortKey:
   return Date.parse(b.updatedAtSortKey) - Date.parse(a.updatedAtSortKey);
 }
 
-export const projects: ProjectRow[] = projectSeeds.map((project) => ({
-  ...project,
-  statusTone: projectStatusMeta[project.status].tone,
-  isCompleted: projectStatusMeta[project.status].isCompleted,
-}));
+export function normalizeProject(project: ProjectSeed | ProjectRow): ProjectRow {
+  return {
+    ...project,
+    statusTone: projectStatusMeta[project.status].tone,
+    isCompleted: projectStatusMeta[project.status].isCompleted,
+  };
+}
 
-export const dashboardProjects = [...projects]
-  .filter((project) => !project.isCompleted)
-  .sort(byUpdatedAtDesc)
-  .slice(0, 5);
+export const initialProjects: ProjectRow[] = projectSeeds.map(normalizeProject);
+export const projects: ProjectRow[] = initialProjects;
 
-export const projectOwners = Array.from(new Set(projects.map((project) => project.owner))).sort((a, b) =>
-  a.localeCompare(b, "ko"),
-);
+export function getDashboardProjects(items: ProjectRow[] = projects) {
+  return [...items]
+    .filter((project) => !project.isCompleted)
+    .sort(byUpdatedAtDesc)
+    .slice(0, 5);
+}
 
-function getLatestProjectSortKey(companyId: string) {
-  return projects
+export const dashboardProjects = getDashboardProjects();
+
+export function getProjectOwners(items: ProjectRow[] = projects) {
+  return Array.from(new Set(items.map((project) => project.owner))).sort((a, b) => a.localeCompare(b, "ko"));
+}
+
+export const projectOwners = getProjectOwners();
+
+export function getScopeFromSearchParams(searchParams: URLSearchParams): ScopeFilter {
+  return searchParams.get("scope") === "completed" ? "completed" : "active";
+}
+
+export function filterProjectsByScope(items: ProjectRow[], scope: ScopeFilter) {
+  return items.filter((project) => (scope === "completed" ? project.isCompleted : !project.isCompleted));
+}
+
+export function getProjectsByScope(scope: ScopeFilter, items: ProjectRow[] = projects) {
+  return filterProjectsByScope(items, scope);
+}
+
+function getLatestProjectSortKey(companyId: string, items: ProjectRow[] = projects) {
+  return items
     .filter((project) => project.companyId === companyId)
     .sort(byUpdatedAtDesc)[0]?.updatedAtSortKey ?? "";
 }
 
-export const clientCompanies: ClientListItem[] = clientRecords
-  .map((client) => {
-    const relatedProjects = projects
-      .filter((project) => project.companyId === client.id)
-      .sort(byUpdatedAtDesc);
+export function getClientCompanies(items: ProjectRow[] = projects): ClientListItem[] {
+  return clientRecords
+    .map((client) => {
+      const relatedProjects = items
+        .filter((project) => project.companyId === client.id)
+        .sort(byUpdatedAtDesc);
 
-    if (relatedProjects.length === 0) {
-      return null;
-    }
+      if (relatedProjects.length === 0) {
+        return null;
+      }
+
+      return {
+        client,
+        projectCount: relatedProjects.length,
+        activeProjectCount: relatedProjects.filter((project) => !project.isCompleted).length,
+        latestProjectAt: relatedProjects[0].updatedAt,
+        projects: relatedProjects.map((project) => ({
+          id: project.id,
+          projectName: project.project,
+          status: project.status,
+          statusTone: project.statusTone,
+          owner: project.owner,
+          intakeSource: project.intakeSource,
+          nextAction: project.nextAction,
+          updatedAt: project.updatedAt,
+        })),
+      };
+    })
+    .filter((item): item is ClientListItem => item !== null)
+    .sort((a, b) => getLatestProjectSortKey(b.client.id, items).localeCompare(getLatestProjectSortKey(a.client.id, items)));
+}
+
+export const clientCompanies: ClientListItem[] = getClientCompanies();
+
+export function filterCompaniesByScope(items: ClientListItem[], scope: ScopeFilter) {
+  return items.filter((item) => (scope === "completed" ? item.activeProjectCount === 0 : item.activeProjectCount > 0));
+}
+
+export function getCompaniesByScope(scope: ScopeFilter, items: ProjectRow[] = projects) {
+  return filterCompaniesByScope(getClientCompanies(items), scope);
+}
+
+export function getNewIntakeProjects(items: ProjectRow[] = projects) {
+  return items.filter((project) => project.status === "접수");
+}
+
+export function getFollowUpProjects(items: ProjectRow[] = projects) {
+  return items.filter((project) => project.needsReminder && !project.isCompleted);
+}
+
+export const newIntakeProjects = getNewIntakeProjects();
+export const followUpProjects = getFollowUpProjects();
+export const activeProjects = getProjectsByScope("active");
+export const completedProjects = getProjectsByScope("completed");
+export const activeCompanies = getCompaniesByScope("active");
+export const completedCompanies = getCompaniesByScope("completed");
+export const reminderProjects = projects.filter((project) => project.needsReminder);
+export function getUnconfirmedScheduleCount(items: ProjectRow[] = projects) {
+  return items.filter((project) => project.status === "시험원배정" || project.status === "시험협의중").length;
+}
+
+export const unconfirmedScheduleCount = getUnconfirmedScheduleCount();
+
+function getPendingPhoneIntakeCount(items: ProjectRow[] = projects) {
+  return items.filter((project) => project.status === "접수" && project.intakeSource === "phone").length;
+}
+
+function buildIntakeBadge(items: ProjectRow[] = projects) {
+  return `신규 ${getNewIntakeProjects(items).length} · 팔로업 ${getFollowUpProjects(items).length}`;
+}
+
+export function buildSidebarSections(items: ProjectRow[] = projects): SidebarSection[] {
+  const nextActiveProjects = getProjectsByScope("active", items);
+  const nextCompletedProjects = getProjectsByScope("completed", items);
+  const nextActiveCompanies = getCompaniesByScope("active", items);
+  const nextCompletedCompanies = getCompaniesByScope("completed", items);
+  const nextNewIntakeProjects = getNewIntakeProjects(items);
+  const nextFollowUpProjects = getFollowUpProjects(items);
+  const nextUnconfirmedScheduleCount = getUnconfirmedScheduleCount(items);
+
+  return [
+    {
+      label: "진행중",
+      items: [
+        { label: "운영 현황", href: "/", groupKey: "active" },
+        {
+          label: "일정",
+          href: "/schedule",
+          groupKey: "active",
+          badge: String(nextUnconfirmedScheduleCount),
+          badgeAriaLabel: `일정 미확정 ${nextUnconfirmedScheduleCount}건`,
+        },
+        {
+          label: "신규 접수",
+          href: "/intake",
+          groupKey: "active",
+          badge: buildIntakeBadge(items),
+          badgeAriaLabel: `신규 접수 ${nextNewIntakeProjects.length}건, 팔로업 ${nextFollowUpProjects.length}건`,
+          tone: "danger",
+        },
+        {
+          label: "프로젝트",
+          href: "/projects?scope=active",
+          groupKey: "active",
+          mobileLabel: "진행중 프로젝트",
+          badge: String(nextActiveProjects.length),
+          badgeAriaLabel: `진행중 프로젝트 ${nextActiveProjects.length}건`,
+        },
+        {
+          label: "기업",
+          href: "/companies?scope=active",
+          groupKey: "active",
+          mobileLabel: "진행중 기업",
+          badge: String(nextActiveCompanies.length),
+          badgeAriaLabel: `진행중 기업 ${nextActiveCompanies.length}개`,
+        },
+      ],
+    },
+    {
+      label: "완료",
+      items: [
+        {
+          label: "프로젝트",
+          href: "/projects?scope=completed",
+          groupKey: "completed",
+          mobileLabel: "완료 프로젝트",
+          badge: String(nextCompletedProjects.length),
+          badgeAriaLabel: `완료 프로젝트 ${nextCompletedProjects.length}건`,
+        },
+        {
+          label: "기업",
+          href: "/companies?scope=completed",
+          groupKey: "completed",
+          mobileLabel: "완료 기업",
+          badge: String(nextCompletedCompanies.length),
+          badgeAriaLabel: `완료 기업 ${nextCompletedCompanies.length}개`,
+        },
+      ],
+    },
+  ];
+}
+
+export const sidebarSections = buildSidebarSections();
+
+export function buildPipelineStages(items: ProjectRow[] = projects): PipelineStage[] {
+  const intakeItems = items.filter((project) =>
+    ["접수", "상담중", "견적/신청서 발송", "회신대기"].includes(project.status),
+  );
+  const coordinationCount = items.filter((project) =>
+    project.status === "시험원배정" || project.status === "시험협의중",
+  ).length;
+  const testingCount = items.filter((project) => project.status === "시험진행중").length;
+  const draftCount = items.filter((project) => project.status === "성적서초안").length;
+  const internalReviewCount = items.filter((project) => project.status === "내부검토").length;
+  const issuedCount = items.filter((project) => project.status === "최종확정").length;
+  const submittedCount = items.filter((project) => project.status === "g4v업로드").length;
+  const completedCount = items.filter((project) => project.status === "완료").length;
+  const webIntakeCount = intakeItems.filter((project) => project.intakeSource === "web").length;
+  const phoneIntakeCount = intakeItems.filter((project) => project.intakeSource === "phone").length;
+
+  return [
+    {
+      title: "접수",
+      metrics: [{ label: "이 달 접수", value: String(intakeItems.length), sub: `웹 ${webIntakeCount} · 전화 ${phoneIntakeCount}` }],
+    },
+    {
+      title: "진행중",
+      metrics: [
+        { label: "시험 협의중", value: String(coordinationCount), sub: `일정 미확정 ${coordinationCount}건` },
+        { label: "시험중", value: String(testingCount), sub: `이번 주 진행 ${testingCount}건` },
+        {
+          label: "성적서 작성중",
+          value: String(draftCount + internalReviewCount),
+          sub: `초안 ${draftCount} · 내부검토 ${internalReviewCount}`,
+        },
+        { label: "성적서 발행", value: String(issuedCount), sub: "최종확정 직후" },
+        { label: "성적서 제출", value: String(submittedCount), sub: "g4v 업로드 완료" },
+      ],
+    },
+    {
+      title: "완료",
+      metrics: [{ label: "이 달 종료 / 완료", value: String(completedCount), sub: `최종 검증 완료 ${completedCount}건` }],
+    },
+  ];
+}
+
+export const pipelineStages: PipelineStage[] = buildPipelineStages();
+
+const examinerDirectory = [
+  { name: "김민수", role: "시험원 · 현장 및 시험 진행" },
+  { name: "박지은", role: "시험원 · 협의 및 고객 커뮤니케이션" },
+  { name: "이서준", role: "시험원 · 성적서 및 g4v 마감" },
+  { name: "최유진", role: "시험원 · 프로젝트 마감 지원" },
+  { name: "정하늘", role: "시험원 · 일정 협의 및 시험 지원" },
+  { name: "오세진", role: "시험원 · 성적서 보조 및 마감 지원" },
+] as const;
+
+export function buildExaminers(items: ProjectRow[] = projects): Examiner[] {
+  return examinerDirectory.map((examiner) => {
+    const ownedProjects = items.filter((project) => project.owner === examiner.name);
 
     return {
-      client,
-      projectCount: relatedProjects.length,
-      activeProjectCount: relatedProjects.filter((project) => !project.isCompleted).length,
-      latestProjectAt: relatedProjects[0].updatedAt,
-      projects: relatedProjects.map((project) => ({
-        id: project.id,
-        projectName: project.project,
-        status: project.status,
-        statusTone: project.statusTone,
-        owner: project.owner,
-        intakeSource: project.intakeSource,
-        nextAction: project.nextAction,
-        updatedAt: project.updatedAt,
-      })),
+      name: examiner.name,
+      role: examiner.role,
+      counts: {
+        coordination: ownedProjects.filter((project) => project.status === "시험원배정" || project.status === "시험협의중").length,
+        testing: ownedProjects.filter((project) => project.status === "시험진행중").length,
+        reporting: ownedProjects.filter((project) =>
+          project.status === "성적서초안" || project.status === "내부검토" || project.status === "고객검토",
+        ).length,
+        issued: ownedProjects.filter((project) => project.status === "최종확정").length,
+        submitted: ownedProjects.filter((project) => project.status === "g4v업로드").length,
+        completed: ownedProjects.filter((project) => project.status === "완료").length,
+      },
     };
-  })
-  .filter((item): item is ClientListItem => item !== null)
-  .sort((a, b) => getLatestProjectSortKey(b.client.id).localeCompare(getLatestProjectSortKey(a.client.id)));
+  });
+}
 
-const reminderProjects = projects.filter((project) => project.needsReminder);
-const unconfirmedScheduleCount = projects.filter((project) =>
-  project.status === "시험원배정" || project.status === "시험협의중"
-).length;
-const pendingIntakeCount = projects.filter((project) =>
-  project.status === "접수" && project.intakeSource === "phone"
-).length;
+export const examiners: Examiner[] = buildExaminers();
 
-export const sidebarSections: Array<{ label: string; items: SidebarItem[] }> = [
-  {
-    label: "운영",
-    items: [
-      { label: "운영 현황", href: "/", badge: "HOME" },
-      { label: "프로젝트", href: "/projects", badge: String(projects.length) },
-      { label: "기업 목록", href: "/companies", badge: String(clientCompanies.length) },
-      { label: "전화 접수", href: "/#top", badge: String(pendingIntakeCount), tone: "danger" },
-      { label: "성적서 관리", href: "/projects", badge: "6" },
-    ],
-  },
-  {
-    label: "지원",
-    items: [
-      { label: "일정 캘린더", href: "/#schedule" },
-      { label: "자료 링크 관리", href: "/projects" },
-      { label: "리마인더", href: "/#action-queue", badge: String(reminderProjects.length), tone: "danger" },
-    ],
-  },
-];
+export function getActionItems(items: ProjectRow[] = projects): ActionItem[] {
+  return [
+    {
+      priority: "긴급",
+      tone: "danger",
+      title: "견적 발송 후 3일 이상 회신 없음",
+      description: "회신대기 프로젝트 중심으로 팔로업 메일 초안 확인",
+      count: String(items.filter((project) => project.needsReminder && project.status === "회신대기").length),
+      hint: "즉시 확인",
+    },
+    {
+      priority: "검토",
+      tone: "warn",
+      title: "사장님 내부검토 대기 성적서",
+      description: "내부검토 상태 프로젝트 우선 확인",
+      count: String(items.filter((project) => project.status === "내부검토").length),
+      hint: "오늘 검토 필요",
+    },
+    {
+      priority: "일정",
+      tone: "warn",
+      title: "시험 일정 미확정 프로젝트",
+      description: "시험원 배정 또는 협의중 단계 점검",
+      count: String(getUnconfirmedScheduleCount(items)),
+      hint: "담당자 확인",
+    },
+    {
+      priority: "추적",
+      tone: "danger",
+      title: "g4v 업로드 후 결과 확인 필요",
+      description: "업로드 이후 완료 전 검증 필요",
+      count: String(items.filter((project) => project.status === "g4v업로드").length),
+      hint: "완료 대기",
+    },
+    {
+      priority: "검토",
+      tone: "warn",
+      title: "전화 접수 미정리",
+      description: "프로젝트 생성 전 메모 상태 정리 필요",
+      count: String(getPendingPhoneIntakeCount(items)),
+      hint: "정리 필요",
+    },
+  ];
+}
 
-export const pipelineStages: PipelineStage[] = [
-  {
-    title: "접수",
-    metrics: [{ label: "이 달 접수", value: "43", sub: "웹 31 · 전화 12" }],
-  },
-  {
-    title: "진행중",
-    metrics: [
-      { label: "시험 협의중", value: "8", sub: "일정 미확정 5건" },
-      { label: "시험중", value: "14", sub: "이번 주 진행 7건" },
-      { label: "성적서 작성중", value: "6", sub: "초안 4 · 내부검토 2" },
-      { label: "성적서 발행", value: "4", sub: "최종확정 직후" },
-      { label: "성적서 제출", value: "3", sub: "고객 전달 완료" },
-    ],
-  },
-  {
-    title: "완료",
-    metrics: [{ label: "이 달 종료 / 완료", value: "11", sub: "최종 검증 완료 8건" }],
-  },
-];
+export const actionItems: ActionItem[] = getActionItems();
 
-export const examiners: Examiner[] = [
-  {
-    name: "김민수",
-    role: "시험원 · 현장 및 시험 진행",
-    counts: { coordination: 3, testing: 5, reporting: 2, issued: 1, submitted: 0, completed: 4 },
-  },
-  {
-    name: "박지은",
-    role: "시험원 · 협의 및 고객 커뮤니케이션",
-    counts: { coordination: 4, testing: 2, reporting: 1, issued: 1, submitted: 1, completed: 3 },
-  },
-  {
-    name: "이서준",
-    role: "시험원 · 성적서 및 g4v 마감",
-    counts: { coordination: 1, testing: 2, reporting: 4, issued: 2, submitted: 2, completed: 4 },
-  },
-  {
-    name: "최유진",
-    role: "시험원 · 프로젝트 마감 지원",
-    counts: { coordination: 0, testing: 1, reporting: 2, issued: 1, submitted: 0, completed: 5 },
-  },
-  {
-    name: "정하늘",
-    role: "시험원 · 일정 협의 및 시험 지원",
-    counts: { coordination: 2, testing: 3, reporting: 1, issued: 0, submitted: 1, completed: 2 },
-  },
-  {
-    name: "오세진",
-    role: "시험원 · 성적서 보조 및 마감 지원",
-    counts: { coordination: 1, testing: 1, reporting: 3, issued: 2, submitted: 1, completed: 3 },
-  },
-];
+export function getScheduleActionItems(items: ProjectRow[] = projects) {
+  return getActionItems(items).filter((item) => item.priority === "일정");
+}
 
-export const actionItems: ActionItem[] = [
-  {
-    priority: "긴급",
-    tone: "danger",
-    title: "견적 발송 후 3일 이상 회신 없음",
-    description: "회신대기 프로젝트 중심으로 팔로업 메일 초안 확인",
-    count: String(reminderProjects.filter((project) => project.status === "회신대기").length),
-    hint: "즉시 확인",
-  },
-  {
-    priority: "검토",
-    tone: "warn",
-    title: "사장님 내부검토 대기 성적서",
-    description: "내부검토 상태 프로젝트 우선 확인",
-    count: String(projects.filter((project) => project.status === "내부검토").length),
-    hint: "오늘 검토 필요",
-  },
-  {
-    priority: "일정",
-    tone: "warn",
-    title: "시험 일정 미확정 프로젝트",
-    description: "시험원 배정 또는 협의중 단계 점검",
-    count: String(unconfirmedScheduleCount),
-    hint: "담당자 확인",
-  },
-  {
-    priority: "추적",
-    tone: "danger",
-    title: "g4v 업로드 후 결과 확인 필요",
-    description: "업로드 이후 완료 전 검증 필요",
-    count: String(projects.filter((project) => project.status === "g4v업로드").length),
-    hint: "완료 대기",
-  },
-  {
-    priority: "검토",
-    tone: "warn",
-    title: "전화 접수 미정리",
-    description: "프로젝트 생성 전 메모 상태 정리 필요",
-    count: String(pendingIntakeCount),
-    hint: "정리 필요",
-  },
-];
+export const scheduleActionItems = getScheduleActionItems();
 
 export const activityLogs: InfoItem[] = [
   {
@@ -679,6 +829,8 @@ type ProjectDetailOverrides = {
   dispatchSummary?: ProjectDispatchSummary;
   notes?: ProjectDetailNote[];
 };
+
+export type ProjectDetailOverridesById = Record<string, ProjectDetailOverrides>;
 
 export type ProjectDetailRecordUpdate = Partial<
   Pick<ProjectRow, "status" | "nextAction" | "nextActionNote" | "needsReminder" | "updatedAt" | "updatedAtSortKey">
@@ -954,24 +1106,26 @@ function buildProjectDetail(project: ProjectRow, overrides: ProjectDetailOverrid
   };
 }
 
-export const projectDetails = projects.map((project) => buildProjectDetail(project));
+export function getProjectDetail(
+  projectId: string,
+  items: ProjectRow[] = projects,
+  overridesById: ProjectDetailOverridesById = {},
+) {
+  const project = items.find((item) => item.id === projectId);
 
-export function getProjectDetail(projectId: string) {
-  return projectDetails.find((project) => project.id === projectId) ?? null;
+  if (!project) {
+    return null;
+  }
+
+  return buildProjectDetail(project, overridesById[projectId]);
 }
 
-export function updateProjectDetailRecord(detail: ProjectDetailRecord, updates: ProjectDetailRecordUpdate) {
-  const nextStatus = updates.status ?? detail.status;
-  const nextProject: ProjectRow = {
-    ...detail,
+export function applyProjectDetailUpdate(project: ProjectRow, updates: ProjectDetailRecordUpdate) {
+  const nextStatus = updates.status ?? project.status;
+
+  return normalizeProject({
+    ...project,
     ...updates,
     status: nextStatus,
-    statusTone: projectStatusMeta[nextStatus].tone,
-    isCompleted: projectStatusMeta[nextStatus].isCompleted,
-  };
-
-  return buildProjectDetail(nextProject, {
-    dispatchSummary: updates.dispatchSummary ?? detail.dispatchSummary,
-    notes: updates.notes ?? detail.notes,
   });
 }

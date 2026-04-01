@@ -1,12 +1,14 @@
-import { actionItems } from "../data/dashboard";
+import { useDashboardData } from "./DashboardDataProvider";
 
 export function ActionQueueCard() {
+  const { actionItems } = useDashboardData();
+
   return (
     <div className="card card-urgent">
       <div className="section-head">
         <div>
           <h2 className="section-title">지금 처리해야 할 일</h2>
-          <p className="section-copy">5건 미처리</p>
+          <p className="section-copy">{actionItems.length}건 미처리</p>
         </div>
       </div>
 
@@ -28,4 +30,3 @@ export function ActionQueueCard() {
     </div>
   );
 }
-

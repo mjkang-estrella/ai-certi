@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { dashboardProjects, projects } from "../data/dashboard";
+import { useDashboardData } from "./DashboardDataProvider";
 
 function isInteractiveTarget(target: EventTarget | null) {
   return target instanceof HTMLElement && Boolean(target.closest("a, button, input, label, select, textarea"));
@@ -7,7 +7,7 @@ function isInteractiveTarget(target: EventTarget | null) {
 
 export function ProjectsTable() {
   const navigate = useNavigate();
-  const activeProjects = projects.filter((project) => !project.isCompleted);
+  const { activeProjects, dashboardProjects } = useDashboardData();
 
   return (
     <section className="projects card">
@@ -16,7 +16,7 @@ export function ProjectsTable() {
           <h2 className="section-title">진행중 프로젝트</h2>
           <p className="section-copy">현재 진행 {activeProjects.length}건</p>
         </div>
-        <Link className="button ghost section-link" to="/projects">
+        <Link className="button ghost section-link" to="/projects?scope=active">
           전체 보기
         </Link>
       </div>

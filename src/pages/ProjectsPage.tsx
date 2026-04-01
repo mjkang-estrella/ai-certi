@@ -1,28 +1,25 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useOutletContext } from "react-router-dom";
+import { Link, useNavigate, useOutletContext, useSearchParams } from "react-router-dom";
 import type { AppShellOutletContext } from "../components/AppShell";
+import { useDashboardData } from "../components/DashboardDataProvider";
 import {
   CURRENT_USER_NAME,
-  projectOwners,
-  projects,
+  getScopeFromSearchParams,
   projectStatuses,
   type IntakeSource,
   type ProjectRow,
   type ProjectStatus,
+  type ScopeFilter,
 } from "../data/dashboard";
-
-type ProjectScope = "all" | "active" | "completed";
 
 type ProjectFilters = {
   selectedOwners: string[];
-  scope: ProjectScope;
   selectedStatuses: ProjectStatus[];
   reminderOnly: boolean;
 };
 
 const initialFilters: ProjectFilters = {
   selectedOwners: [],
-  scope: "all",
   selectedStatuses: [],
   reminderOnly: false,
 };
@@ -59,18 +56,6 @@ function sortProjects(items: ProjectRow[]) {
   });
 }
 
-function matchesScope(project: ProjectRow, scope: ProjectScope) {
-  if (scope === "active") {
-    return !project.isCompleted;
-  }
-
-  if (scope === "completed") {
-    return project.isCompleted;
-  }
-
-  return true;
-}
-
 function matchesSearch(project: ProjectRow, query: string) {
   if (!query) {
     return true;
@@ -83,22 +68,14 @@ function matchesSearch(project: ProjectRow, query: string) {
   );
 }
 
-function buildActiveFilters(filters: ProjectFilters, search: string) {
+function buildActiveFilters(filters: ProjectFilters, search: string, scope: ScopeFilter) {
   const items: string[] = [];
-
-  if (filters.scope === "active") {
-    items.push("진행중만");
-  }
-
-  if (filters.scope === "completed") {
-    items.push("완료만");
-  }
 
   if (filters.selectedOwners.length > 0) {
     items.push(...filters.selectedOwners.map((owner) => `담당자 ${owner}`));
   }
 
-  if (filters.reminderOnly) {
+  if (scope === "active" && filters.reminderOnly) {
     items.push("리마인더 필요");
   }
 
@@ -117,19 +94,52 @@ function isInteractiveTarget(target: EventTarget | null) {
   return target instanceof HTMLElement && Boolean(target.closest("a, button, input, label, select, textarea"));
 }
 
+function getScopeCopy(scope: ScopeFilter) {
+  if (scope === "completed") {
+    return {
+      title: "완료 프로젝트",
+      description: "종결된 프로젝트 이력을 상태와 담당자 기준으로 확인합니다.",
+      emptyState: "완료 프로젝트가 없습니다. 검색어나 필터 조건을 다시 확인해 주세요.",
+      baseFilterCopy: "적용된 추가 필터가 없습니다. 완료 프로젝트 이력을 최신 업데이트 순으로 보여줍니다.",
+    };
+  }
+
+  return {
+    title: "진행중 프로젝트",
+    description: "현재 처리 중인 프로젝트를 상태와 담당자 기준으로 좁혀 보고 운영 우선순위를 정리합니다.",
+    emptyState: "조건에 맞는 진행중 프로젝트가 없습니다. 상태나 담당자 필터를 줄이거나 검색어를 다시 확인해 주세요.",
+    baseFilterCopy: "적용된 추가 필터가 없습니다. 내 담당 진행중 프로젝트와 전체 진행중 프로젝트를 우선순위에 맞춰 보여줍니다.",
+  };
+}
+
 export function ProjectsPage() {
   const navigate = useNavigate();
   const { projectSearch, setProjectSearch } = useOutletContext<AppShellOutletContext>();
+  const { projectOwners, projects } = useDashboardData();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [filters, setFilters] = useState<ProjectFilters>(initialFilters);
   const [openMenu, setOpenMenu] = useState<"status" | "owner" | null>(null);
   const filterMenuRef = useRef<HTMLElement | null>(null);
-
+  const scope = getScopeFromSearchParams(searchParams);
+  const scopeCopy = getScopeCopy(scope);
   const normalizedQuery = projectSearch.trim().toLowerCase();
-  const activeFilters = buildActiveFilters(filters, projectSearch.trim());
+  const activeFilters = buildActiveFilters(filters, projectSearch.trim(), scope);
+
+  useEffect(() => {
+    if (searchParams.get("scope") !== scope) {
+      setSearchParams({ scope }, { replace: true });
+    }
+  }, [scope, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (scope === "completed" && filters.reminderOnly) {
+      setFilters((current) => ({ ...current, reminderOnly: false }));
+    }
+  }, [filters.reminderOnly, scope]);
 
   const filteredProjects = sortProjects(
     projects.filter((project) => {
-      if (!matchesScope(project, filters.scope)) {
+      if (scope === "completed" ? !project.isCompleted : project.isCompleted) {
         return false;
       }
 
@@ -137,7 +147,7 @@ export function ProjectsPage() {
         return false;
       }
 
-      if (filters.reminderOnly && !project.needsReminder) {
+      if (scope === "active" && filters.reminderOnly && !project.needsReminder) {
         return false;
       }
 
@@ -199,9 +209,9 @@ export function ProjectsPage() {
       <section className="card project-filter-card" ref={filterMenuRef}>
         <div className="section-head">
           <div>
-            <h2 className="section-title">프로젝트 목록</h2>
+            <h2 className="section-title">{scopeCopy.title}</h2>
             <p className="section-copy">
-              결과 {filteredProjects.length}건 · 내 담당 진행중 프로젝트와 진행중 프로젝트가 먼저 보이도록 정렬합니다.
+              결과 {filteredProjects.length}건 · {scopeCopy.description}
             </p>
           </div>
           <button className="button ghost" type="button" onClick={clearFilters}>
@@ -210,24 +220,7 @@ export function ProjectsPage() {
         </div>
 
         <div className="project-list-toolbar">
-          <div className="project-segmented">
-            {[
-              { value: "all", label: "전체" },
-              { value: "active", label: "진행중" },
-              { value: "completed", label: "완료" },
-            ].map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                className={`filter-chip${filters.scope === item.value ? " active" : ""}`}
-                onClick={() => setFilters((current) => ({ ...current, scope: item.value as ProjectScope }))}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="project-toolbar-side">
+          {scope === "active" ? (
             <label className="project-toggle">
               <input
                 checked={filters.reminderOnly}
@@ -241,7 +234,11 @@ export function ProjectsPage() {
               />
               <span>리마인더 필요만</span>
             </label>
+          ) : (
+            <div className="project-scope-note">완료 목록에서는 리마인더 필터를 숨깁니다.</div>
+          )}
 
+          <div className="project-toolbar-side">
             <div className="project-header-filter mobile-only-inline">
               <button
                 type="button"
@@ -295,7 +292,7 @@ export function ProjectsPage() {
         <div className="project-active-filters">
           <span className="project-filter-label">현재 조건</span>
           {activeFilters.length === 0 ? (
-            <p className="project-empty-inline">적용된 추가 필터가 없습니다. 전체 프로젝트를 기본 정렬로 보여줍니다.</p>
+            <p className="project-empty-inline">{scopeCopy.baseFilterCopy}</p>
           ) : (
             <div className="project-active-filter-list">
               {activeFilters.map((item) => (
@@ -308,9 +305,7 @@ export function ProjectsPage() {
         </div>
 
         {filteredProjects.length === 0 ? (
-          <div className="project-empty-state">
-            조건에 맞는 프로젝트가 없습니다. 상태나 담당자 필터를 줄이거나 검색어를 다시 확인해 주세요.
-          </div>
+          <div className="project-empty-state">{scopeCopy.emptyState}</div>
         ) : (
           <>
             <div className="table-wrap desktop-only">
@@ -394,7 +389,9 @@ export function ProjectsPage() {
                     >
                       <td>
                         <div className="company-name">{project.company}</div>
-                        <Link className="table-link" to={`/projects/${project.id}`}>{project.project}</Link>
+                        <Link className="table-link" to={`/projects/${project.id}`}>
+                          {project.project}
+                        </Link>
                         {project.needsReminder ? <span className="mini-flag danger">리마인더</span> : null}
                       </td>
                       <td>
@@ -438,7 +435,9 @@ export function ProjectsPage() {
                   <div className="mobile-card-head">
                     <div>
                       <div className="company-name">{project.company}</div>
-                      <Link className="table-link" to={`/projects/${project.id}`}>{project.project}</Link>
+                      <Link className="table-link" to={`/projects/${project.id}`}>
+                        {project.project}
+                      </Link>
                     </div>
                     <span className={`state ${project.statusTone}`}>{project.status}</span>
                   </div>

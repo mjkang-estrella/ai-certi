@@ -1,6 +1,8 @@
 import type { ClientListItem } from "../data/dashboard";
 
 type CompanyListProps = {
+  title: string;
+  description: string;
   items: ClientListItem[];
   selectedClientId: string;
   onSelect: (clientId: string) => void;
@@ -9,6 +11,8 @@ type CompanyListProps = {
 };
 
 export function CompanyList({
+  title,
+  description,
   items,
   selectedClientId,
   onSelect,
@@ -19,8 +23,10 @@ export function CompanyList({
     <section className="card company-list-card">
       <div className="section-head">
         <div>
-          <h2 className="section-title">기업 목록</h2>
-          <p className="section-copy">검색 결과 {items.length}개 기업</p>
+          <h2 className="section-title">{title}</h2>
+          <p className="section-copy">
+            {description} · 검색 결과 {items.length}개 기업
+          </p>
         </div>
         <form className="company-list-search" role="search" onSubmit={(event) => event.preventDefault()}>
           <label className="sr-only" htmlFor="company-list-search">

@@ -1,6 +1,8 @@
-import { pipelineStages } from "../data/dashboard";
+import { useDashboardData } from "./DashboardDataProvider";
 
 export function DashboardBanner() {
+  const { pipelineStages } = useDashboardData();
+
   return (
     <section className="overview-card card">
       <div className="section-head">
